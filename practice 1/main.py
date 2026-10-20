@@ -1,4 +1,5 @@
 import tkinter as tk
+import shlex
 
 def print_line(string):
     text.config(state='normal')
@@ -13,7 +14,6 @@ def on_enter(event):
     print_line("$ " + line)
 
 if __name__ == '__main__':
-    commands = ['ls', 'cd', 'clear', 'exit']
     root = tk.Tk()
     root.title('VFS: default') # ЗАГЛУШКА, ПОМЕНЯТЬ
     root.geometry("800x400")
