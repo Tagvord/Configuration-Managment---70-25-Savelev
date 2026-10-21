@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vfs name="files">
+  <file name="readme.txt">Hello, VFS!</file>
+  <file name="notes.txt">first line
+second line</file>
+  <file name="data.bin" encoding="base64">AQID</file>
+  <dir name="docs">
+    <file name="a.txt">file a</file>
+  </dir>
+</vfs>

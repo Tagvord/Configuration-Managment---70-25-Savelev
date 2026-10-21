@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vfs name="deep">
+  <dir name="home">
+    <dir name="user">
+      <dir name="projects">
+        <dir name="emulator">
+          <file name="main.py">print("hello")</file>
+        </dir>
+        <file name="todo.txt">write tests</file>
+      </dir>
+      <file name="profile.txt">user profile</file>
+    </dir>
+  </dir>
+  <dir name="etc">
+    <file name="config.txt">key=value</file>
+  </dir>
+  <file name="root.txt">file in the root</file>
+</vfs>

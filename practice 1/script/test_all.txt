@@ -1,0 +1,30 @@
+# Тест всех команд (запускать с --vfs vfs/deep.xml)
+
+conf-dump
+
+# pwd и ls в корне
+pwd
+ls
+
+# cd: относительные и абсолютные пути, ..
+cd home
+cd user/projects
+pwd
+ls
+ls emulator
+cd emulator
+ls main.py
+cd ../..
+pwd
+cd /etc
+ls
+cd ..
+cd /
+pwd
+
+# Ошибки
+ls nothing
+cd nothing
+cd root.txt
+foo
+ls "unclosed
