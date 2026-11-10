@@ -1,0 +1,6 @@
+package = "A"
+repository = "examples/filter.txt"
+test_mode = true
+version = "latest"
+output_file = "filter.svg"
+filter = "X"

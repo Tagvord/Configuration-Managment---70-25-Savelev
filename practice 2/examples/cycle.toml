@@ -1,0 +1,6 @@
+package = "A"
+repository = "examples/cycle.txt"
+test_mode = true
+version = "latest"
+output_file = "cycle.svg"
+filter = ""

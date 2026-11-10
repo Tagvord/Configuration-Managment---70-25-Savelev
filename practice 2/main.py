@@ -114,19 +114,92 @@ def apk_dependencies(repo, name, version):
     return result
 
 
-def main():
-    config_path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "config.toml")
-    cfg = load_config(config_path)
+def load_test_repo(path):
+    """Чтение тестового графа 'A: B C'."""
+    graph = {}
+    try:
+        with open(path, encoding="utf-8") as file:
+            for number, line in enumerate(file, 1):
+                line = line.split("#", 1)[0].strip()
+                if not line:
+                    continue
+                if ":" not in line:
+                    error(f"{path}, строка {number}: ожидается 'ИМЯ: ЗАВИСИМОСТИ'")
+                name, deps = line.split(":", 1)
+                names = [name.strip(), *deps.split()]
+                for package in names:
+                    if not (package.isascii() and package.isalpha() and package.isupper()):
+                        error(f"{path}, строка {number}: имя '{package}' — не большие латинские буквы")
+                graph[names[0]] = names[1:]
+    except (OSError, UnicodeDecodeError) as exc:
+        error(f"не удалось прочитать тестовый репозиторий {path}: {exc}")
+    return graph
+
+
+def get_dependencies_function(cfg):
+    """Возвращает функцию зависимостей пакета."""
     package, version = cfg["package"], cfg["version"]
+    if cfg["test_mode"]:
+        test_graph = load_test_repo(cfg["repository"])
+        if package not in test_graph:
+            error(f"пакет {package} не найден в тестовом репозитории")
+        return lambda name: test_graph.get(name, [])
+
     repo = parse_index(download_index(cfg["repository"]))
     versions = repo[0]
     if package not in versions:
         error(f"пакет {package} не найден в репозитории")
     if version != "latest" and version not in versions[package]:
         error(f"версии {version} нет, доступны: {', '.join(versions[package])}")
-    print(f"Прямые зависимости {package} ({version}):")
-    for dep in apk_dependencies(repo, package, version):
-        print(" ", dep)
+    return lambda name: apk_dependencies(repo, name, version if name == package else "latest")
+
+
+def bfs(level, graph, get_dependencies, skip):
+    """Граф в ширину."""
+    if not level:
+        return
+    next_level = []
+    queued = set(level)
+    for name in level:
+        deps = [dep for dep in get_dependencies(name) if not (skip and skip in dep)]
+        graph[name] = deps
+        for dep in deps:
+            if dep not in graph and dep not in queued:
+                next_level.append(dep)
+                queued.add(dep)
+    bfs(next_level, graph, get_dependencies, skip)
+
+
+def dfs(graph, root):
+    """Обход в глубину"""
+    order, state, cycle_edges = [], {}, []
+
+    def visit(name):
+        state[name] = "в обработке"
+        for dep in graph[name]:
+            if state.get(dep) == "в обработке":
+                cycle_edges.append((name, dep))
+            elif dep not in state:
+                visit(dep)
+        state[name] = "готов"
+        order.append(name)
+
+    visit(root)
+    return order, cycle_edges
+
+
+def main():
+    config_path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "config.toml")
+    cfg = load_config(config_path)
+    root = cfg["package"]
+    graph = {}
+    bfs([root], graph, get_dependencies_function(cfg), cfg["filter"])
+    _, cycle_edges = dfs(graph, root)
+    print(f"Граф зависимостей {root}:")
+    for name, deps in graph.items():
+        print(f" {name} -> {', '.join(deps) or '—'}")
+    for name, dep in cycle_edges:
+        print(f"Цикл: {name} -> {dep}")
 
 
 if __name__ == "__main__":

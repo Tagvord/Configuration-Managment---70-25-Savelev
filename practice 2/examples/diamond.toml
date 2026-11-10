@@ -1,0 +1,6 @@
+package = "A"
+repository = "examples/diamond.txt"
+test_mode = true
+version = "latest"
+output_file = "diamond.svg"
+filter = ""
