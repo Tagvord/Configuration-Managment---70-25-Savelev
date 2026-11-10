@@ -3,6 +3,7 @@ import gzip
 import io
 import os
 import re
+import subprocess
 import sys
 import tarfile
 import tomllib
@@ -189,6 +190,34 @@ def dfs(graph, root):
     return order, cycle_edges
 
 
+def to_dot(graph, root, cycle_edges):
+    """Преобразует граф зависимостей в формат Graphviz DOT."""
+    lines = [
+        "digraph dependencies {",
+        " node [shape=box];",
+        f' "{root}" [style=filled, fillcolor=lightblue];',
+    ]
+    cycle_edges = set(cycle_edges)
+    for name, deps in graph.items():
+        if not deps:
+            lines.append(f' "{name}";')
+        for dep in deps:
+            color = " [color=red]" if (name, dep) in cycle_edges else ""
+            lines.append(f' "{name}" -> "{dep}"{color};')
+    lines.append("}")
+    return "\n".join(lines)
+
+
+def save_svg(dot_text, path):
+    """Сохраняет граф в SVG с помощью команды dot."""
+    try:
+        subprocess.run(["dot", "-Tsvg", "-o", path], input=dot_text, text=True, check=True)
+    except FileNotFoundError:
+        error("не установлен Graphviz (нужна команда dot)")
+    except subprocess.CalledProcessError:
+        error("Graphviz не смог построить изображение")
+
+
 def main():
     args = sys.argv[1:]
     show_order = "--order" in args
@@ -208,11 +237,12 @@ def main():
             print(f"Цикл: связь {name} -> {dep} пропущена")
         return
 
-    print(f"Граф зависимостей {root}:")
-    for name, deps in graph.items():
-        print(f" {name} -> {', '.join(deps) or '—'}")
     for name, dep in cycle_edges:
-        print(f"Цикл: {name} -> {dep}")
+        print(f"Цикл: {name} -> {dep}", file=sys.stderr)
+    dot_text = to_dot(graph, root, cycle_edges)
+    print(dot_text)
+    save_svg(dot_text, cfg["output_file"])
+    print(f"Изображение сохранено в {cfg['output_file']}", file=sys.stderr)
 
 
 if __name__ == "__main__":
