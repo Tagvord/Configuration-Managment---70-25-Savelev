@@ -1,7 +1,11 @@
+import gzip
+import io
 import os
+import re
 import sys
+import tarfile
 import tomllib
-from pathlib import Path
+import urllib.request
 
 PARAMS = {
     "package": str,
@@ -54,6 +58,76 @@ def load_config(path):
     return cfg
 
 
-cfg = load_config(sys.argv[1] if len(sys.argv) > 1 else Path(__file__).with_name("config.toml"))
-for key, val in cfg.items():
-    print(f"{key} = {val}")
+def download_index(url):
+    """Скачивает APKINDEX.tar.gz и возвращает текст файла APKINDEX из архива."""
+    url = url.rstrip("/") + "/APKINDEX.tar.gz"
+    try:
+        with urllib.request.urlopen(url, timeout=30) as response:
+            data = response.read()
+        # Архив содержит два склеенных gzip-потока: подпись и индекс.
+        with tarfile.open(fileobj=io.BytesIO(gzip.decompress(data)), ignore_zeros=True) as archive:
+            index_file = archive.extractfile("APKINDEX")
+            if index_file is None:
+                error(f"{url} не похож на индекс репозитория Alpine")
+            with index_file:
+                return index_file.read().decode("utf-8")
+    except OSError as exc:
+        error(f"не удалось получить {url}: {exc}")
+    except (tarfile.TarError, KeyError, EOFError, UnicodeDecodeError):
+        error(f"{url} не похож на индекс репозитория Alpine")
+
+
+def parse_index(text):
+    """Возвращает версии пакетов с зависимостями и поставщиков виртуальных пакетов."""
+    versions, providers = {}, {}
+    for block in text.split("\n\n"):
+        fields = {}
+        for line in block.splitlines():
+            if line[1:2] == ":":
+                fields[line[0]] = line[2:]
+        if "P" not in fields:
+            continue
+        versions.setdefault(fields["P"], {})[fields["V"]] = fields.get("D", "").split()
+        for item in fields.get("p", "").split():
+            providers.setdefault(item.split("=", 1)[0], fields["P"])
+    return versions, providers
+
+
+def apk_dependencies(repo, name, version):
+    """Возвращает имена пакетов, от которых пакет зависит напрямую."""
+    versions, providers = repo
+    if name not in versions:
+        return []
+    if version == "latest":
+        version = next(iter(versions[name]))
+    result = []
+    for token in versions[name][version]:
+        if token.startswith("!"):  # Конфликт пакетов.
+            continue
+        dep = re.split(r"[<>=~]", token, maxsplit=1)[0]
+        dep = dep if dep in versions else providers.get(dep)
+        if dep is None:
+            print(f"Предупреждение: зависимость {token} пакета {name} не найдена",
+                  file=sys.stderr)
+        elif dep != name and dep not in result:
+            result.append(dep)
+    return result
+
+
+def main():
+    config_path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "config.toml")
+    cfg = load_config(config_path)
+    package, version = cfg["package"], cfg["version"]
+    repo = parse_index(download_index(cfg["repository"]))
+    versions = repo[0]
+    if package not in versions:
+        error(f"пакет {package} не найден в репозитории")
+    if version != "latest" and version not in versions[package]:
+        error(f"версии {version} нет, доступны: {', '.join(versions[package])}")
+    print(f"Прямые зависимости {package} ({version}):")
+    for dep in apk_dependencies(repo, package, version):
+        print(" ", dep)
+
+
+if __name__ == "__main__":
+    main()
