@@ -1,3 +1,4 @@
+
 import gzip
 import io
 import os
@@ -189,12 +190,24 @@ def dfs(graph, root):
 
 
 def main():
-    config_path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "config.toml")
+    args = sys.argv[1:]
+    show_order = "--order" in args
+    if show_order:
+        args.remove("--order")
+    config_path = args[0] if args else os.path.join(os.path.dirname(__file__), "config.toml")
     cfg = load_config(config_path)
     root = cfg["package"]
     graph = {}
     bfs([root], graph, get_dependencies_function(cfg), cfg["filter"])
-    _, cycle_edges = dfs(graph, root)
+    order, cycle_edges = dfs(graph, root)
+    if show_order:
+        print(f"Порядок загрузки зависимостей {root}:")
+        for number, name in enumerate(order, 1):
+            print(f" {number}. {name}")
+        for name, dep in cycle_edges:
+            print(f"Цикл: связь {name} -> {dep} пропущена")
+        return
+
     print(f"Граф зависимостей {root}:")
     for name, deps in graph.items():
         print(f" {name} -> {', '.join(deps) or '—'}")
