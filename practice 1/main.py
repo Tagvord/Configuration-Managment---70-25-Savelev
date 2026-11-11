@@ -5,7 +5,7 @@ import configparser
 import os
 import base64
 import binascii
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as element_tree
 
 vfs_root = {'type': 'dir', 'children': {}}
 vfs_name = 'default'
@@ -17,12 +17,13 @@ def load_node(el):
         if el.get('encoding') == 'base64':
             data = base64.b64decode(data)
         return {'type': 'file', 'data': data}
-    return {'type': 'dir', 'children': {c.get('name'): load_node(c) for c in el}}
+    children = {child.get('name'): load_node(child) for child in el}
+    return {'type': 'dir', 'children': children}
 
 
 def load_vfs(path):
     """Возвращает имя и корень"""
-    root_el = ET.parse(path).getroot()
+    root_el = element_tree.parse(path).getroot()
     return root_el.get('name', 'vfs'), load_node(root_el)
 
 def resolve(path):
@@ -143,13 +144,13 @@ def print_params(params):
     for key, value in params.items():
         print_line(f'{key}={value}')
 
-def parce_CMD_args():
+def parse_cmd_args():
     """Получение аргументов переданных в командной строке при вызове"""
-    parcer = argparse.ArgumentParser()
-    parcer.add_argument('--vfs')
-    parcer.add_argument('--scripts')
-    parcer.add_argument('--config')
-    return parcer.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--vfs')
+    parser.add_argument('--scripts')
+    parser.add_argument('--config')
+    return parser.parse_args()
 
 params = {
     'vfs':None,
@@ -158,7 +159,7 @@ params = {
 }
 
 if __name__ == '__main__':
-    cli = parce_CMD_args()
+    cli = parse_cmd_args()
     
     cfg = configparser.ConfigParser()
     if cli.config:
@@ -195,7 +196,7 @@ if __name__ == '__main__':
         try:
             vfs_name, vfs_root = load_vfs(params['vfs'])
             root.title(f'VFS: {vfs_name}')
-        except (OSError, ET.ParseError, binascii.Error) as e:
+        except (OSError, element_tree.ParseError, binascii.Error) as e:
             print_line(f'vfs error: {e}')
     if params['scripts']:
         run_script(params['scripts'])
