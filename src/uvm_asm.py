@@ -1,18 +1,15 @@
-
 import argparse
 import csv
 from pathlib import Path
 
-from src.uvm_isa import COMMANDS, b_limit
+from src.uvm_isa import COMMANDS, b_limit, encode, hex_bytes
 
 
 def error(message):
-    """Завершает программу с сообщением об ошибке."""
     raise SystemExit(f"Ошибка: {message}")
 
 
 def parse_args():
-    """Разбирает аргументы командной строки."""
     parser = argparse.ArgumentParser(description="Ассемблер учебной ВМ")
     parser.add_argument("source", help="текст программы на ассемблере (CSV)")
     parser.add_argument("output", help="двоичный файл-результат")
@@ -23,7 +20,6 @@ def parse_args():
 
 
 def read_source(path):
-    """Читает текст программы"""
     try:
         return Path(path).read_text(encoding="utf-8-sig")
     except OSError as exc:
@@ -33,7 +29,6 @@ def read_source(path):
 
 
 def parse_operand(text, line_no):
-    """Переводит операнд в число: 668, 0x29C и 0b1010 тоже подходят."""
     try:
         return int(text, 0)
     except ValueError:
@@ -41,7 +36,6 @@ def parse_operand(text, line_no):
 
 
 def parse_row(row, line_no):
-    """Превращает строку CSV в команду промежуточного представления."""
     name = row[0].strip().lower()
     if name not in COMMANDS:
         error(f"строка {line_no}: неизвестная команда «{row[0].strip()}»")
@@ -57,7 +51,6 @@ def parse_row(row, line_no):
 
 
 def parse(text):
-    """Переводит текст программы в список команд."""
     program = []
     for line_no, row in enumerate(csv.reader(text.splitlines()), 1):
         if not row or not "".join(row).strip():
@@ -68,13 +61,23 @@ def parse(text):
     return program
 
 
-def print_ir(program):
-    """Печатает промежуточное представление в виде полей и значений."""
-    for index, command in enumerate(program):
-        print(
-            f"{index:3}: {command['name']:<5} "
-            f"A={command['A']}, B={command['B']}"
-        )
+def translate(program):
+    return b"".join(encode(command) for command in program)
+
+
+def write_binary(path, code):
+    path = Path(path)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(code)
+    except OSError as exc:
+        error(f"не удалось записать {path}: {exc}")
+
+
+def print_bytes(program):
+    for command in program:
+        line = f"{command['name']},{command['B']}"
+        print(f"{line:<11} -> {hex_bytes(encode(command))}")
 
 
 def main():
@@ -82,6 +85,9 @@ def main():
     program = parse(read_source(args.source))
     if not program:
         error("в программе нет ни одной команды")
+    code = translate(program)
+    write_binary(args.output, code)
     if args.test:
-        print_ir(program)
-    print(f"Команд в программе: {len(program)}")
+        print_bytes(program)
+    print(f"Команд: {len(program)}. Размер файла {args.output}: "
+          f"{len(code)} байт")

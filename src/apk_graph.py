@@ -1,5 +1,3 @@
-"""Запуск: python main.py [config.toml] [--order] из папки practice 2."""
-
 import gzip
 import io
 import os
@@ -23,12 +21,10 @@ PARAMS = {
 
 
 def error(message):
-    """Завершает программу с сообщением об ошибке."""
     raise SystemExit(f"Ошибка: {message}")
 
 
 def validate_fields(cfg):
-    """Проверяет состав и типы полей конфигурации."""
     for name in cfg:
         if name not in PARAMS:
             error(f'неизвестный параметр {name}')
@@ -40,7 +36,6 @@ def validate_fields(cfg):
 
 
 def validate_repository(cfg):
-    """Проверяет имя корневого пакета и источник зависимостей."""
     package = cfg["package"]
     if not package:
         error("имя пакета не задано")
@@ -54,7 +49,6 @@ def validate_repository(cfg):
 
 
 def validate_graph_options(cfg):
-    """Проверяет версию, путь изображения и фильтр корневого пакета."""
     if not cfg["version"]:
         error("версия не задана")
     if not cfg["output_file"].endswith(".svg"):
@@ -67,7 +61,6 @@ def validate_graph_options(cfg):
 
 
 def load_config(path):
-    """Читает TOML и проверяет настройки перед построением графа."""
     try:
         with open(path, "rb") as file:
             cfg = tomllib.load(file)
@@ -83,7 +76,6 @@ def load_config(path):
 
 
 def download_index(url):
-    """Читает APKINDEX из склеенных gzip-потоков с подписью и индексом."""
     url = url.rstrip("/") + "/APKINDEX.tar.gz"
     try:
         with urllib.request.urlopen(url, timeout=30) as response:
@@ -102,7 +94,6 @@ def download_index(url):
 
 
 def parse_index(text):
-    """Возвращает версии с зависимостями и поставщиков виртуальных пакетов."""
     versions, providers = {}, {}
     for block in text.split("\n\n"):
         fields = {}
@@ -119,7 +110,6 @@ def parse_index(text):
 
 
 def apk_dependencies(repo, name, version):
-    """Возвращает прямые зависимости, пропуская записи о конфликтах."""
     versions, providers = repo
     if name not in versions:
         return []
@@ -143,7 +133,6 @@ def apk_dependencies(repo, name, version):
 
 
 def load_test_repo(path):
-    """Чтение тестового графа 'A: B C'."""
     graph = {}
     try:
         with open(path, encoding="utf-8") as file:
@@ -171,7 +160,6 @@ def load_test_repo(path):
 
 
 def get_dependencies_function(cfg):
-    """Возвращает функцию зависимостей пакета."""
     package, version = cfg["package"], cfg["version"]
     if cfg["test_mode"]:
         test_graph = load_test_repo(cfg["repository"])
@@ -188,7 +176,6 @@ def get_dependencies_function(cfg):
         error(f"версии {version} нет, доступны: {available}")
 
     def get_apk_dependencies(name):
-        """Применяет выбранную версию к корневому пакету."""
         selected = version if name == package else "latest"
         return apk_dependencies(repo, name, selected)
 
@@ -196,7 +183,6 @@ def get_dependencies_function(cfg):
 
 
 def bfs(level, graph, get_dependencies, skip):
-    """Граф в ширину."""
     if not level:
         return
     next_level = []
@@ -214,11 +200,9 @@ def bfs(level, graph, get_dependencies, skip):
 
 
 def dfs(graph, root):
-    """Обход в глубину"""
     order, state, cycle_edges = [], {}, []
 
     def visit(name):
-        """Помечает обратные рёбра и добавляет пакет после его зависимостей."""
         state[name] = "в обработке"
         for dep in graph[name]:
             if state.get(dep) == "в обработке":
@@ -233,7 +217,6 @@ def dfs(graph, root):
 
 
 def to_dot(graph, root, cycle_edges):
-    """Преобразует граф зависимостей в формат Graphviz DOT."""
     lines = [
         "digraph dependencies {",
         " node [shape=box];",
@@ -251,7 +234,6 @@ def to_dot(graph, root, cycle_edges):
 
 
 def save_svg(dot_text, path):
-    """Сохраняет граф в SVG с помощью команды dot."""
     try:
         subprocess.run(
             ["dot", "-Tsvg", "-o", path],
@@ -266,7 +248,6 @@ def save_svg(dot_text, path):
 
 
 def main():
-    """Строит граф и выводит порядок загрузки либо сохраняет SVG."""
     args = sys.argv[1:]
     show_order = "--order" in args
     if show_order:

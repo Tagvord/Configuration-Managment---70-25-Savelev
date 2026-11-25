@@ -1,7 +1,5 @@
-
 COMMAND_SIZE = 3
 OPCODE_BITS = 7
-
 
 COMMANDS = {
     "load": (119, 15, "константа"),
@@ -12,5 +10,13 @@ COMMANDS = {
 
 
 def b_limit(name):
-    """Возвращает наибольшее значение поля B для команды."""
     return (1 << COMMANDS[name][1]) - 1
+
+
+def encode(command):
+    word = command["A"] | command["B"] << OPCODE_BITS
+    return word.to_bytes(COMMAND_SIZE, "little")
+
+
+def hex_bytes(data):
+    return ", ".join(f"0x{byte:02X}" for byte in data)

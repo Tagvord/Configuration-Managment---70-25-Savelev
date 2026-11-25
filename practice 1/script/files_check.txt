@@ -1,6 +1,4 @@
-# Проверка VFS с несколькими файлами (запускать с --vfs vfs/files.xml)
 ls
-# ls для файла
 ls readme.txt
 ls docs
 cd docs

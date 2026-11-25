@@ -22,12 +22,10 @@ def load_node(el):
 
 
 def load_vfs(path):
-    """Возвращает имя и корень"""
     root_el = element_tree.parse(path).getroot()
     return root_el.get('name', 'vfs'), load_node(root_el)
 
 def resolve(path):
-    """Превращает путь в список имён от корня"""
     parts = [] if path.startswith('/') else list(cwd)
     for p in path.split('/'):
         if p in ('', '.'):
@@ -40,7 +38,6 @@ def resolve(path):
     return parts
 
 def get_node(parts):
-    """Узел по списку имён или None"""
     node = vfs_root
     for p in parts:
         if node['type'] != 'dir' or p not in node['children']:
@@ -90,7 +87,6 @@ commands = {'ls': ls_cmd,
             'exit': exit_cmd}
 
 def execute(line):
-    """Исполнение команды"""
     try:
         parts = shlex.split(line)
     except ValueError as e:
@@ -105,21 +101,18 @@ def execute(line):
     commands[name](args)
 
 def print_line(string):
-    """Вывод строки в текстовое поле"""
     text.config(state='normal')
     text.insert("end", string + '\n')
     text.config(state="disabled")
     text.see("end")
 
 def on_enter(event):
-    """Обработка ввода в entry"""
     line = entry.get()
     entry.delete(0, "end")
     print_line(prompt() + line)
     execute(line)
 
 def run_script(path):
-    """Запускает построчно команды из указанного файла"""
     try:
         with open(path, encoding="UTF-8") as f:
             ln = f.read().splitlines()
@@ -140,12 +133,10 @@ def run_script(path):
 
 
 def print_params(params):
-    """Вывод полученных параметров из командной строки в поле текста"""
     for key, value in params.items():
         print_line(f'{key}={value}')
 
 def parse_cmd_args():
-    """Получение аргументов переданных в командной строке при вызове"""
     parser = argparse.ArgumentParser()
     parser.add_argument('--vfs')
     parser.add_argument('--scripts')

@@ -11,8 +11,8 @@
 При запуске напрямую из папки `practice 2`:
 
 ```sh
-python main.py config.toml           # граф на языке Graphviz + картинка SVG
-python main.py config.toml --order   # порядок загрузки зависимостей
+python main.py config.toml
+python main.py config.toml --order
 ```
 
 Настройки (`config.toml`): `package`, `repository`, `test_mode`, `version`, `output_file`, `filter`.
