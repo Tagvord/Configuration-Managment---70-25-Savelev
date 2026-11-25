@@ -93,5 +93,33 @@ class AluTest(unittest.TestCase):
         self.assertEqual(machine.stack, [1, 1])
 
 
+class VectorTaskTest(unittest.TestCase):
+
+    def check(self, name, first, second):
+        text = (EXAMPLES / name).read_text(encoding="utf-8")
+        memory = run_source(text).memory
+        expected = [int(a == b) for a, b in zip(first, second)]
+        self.assertEqual(memory[1000:1010], first)
+        self.assertEqual(memory[1010:1020], expected)
+
+    def test_mixed(self):
+        self.check(
+            "vectors1.csv",
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            [1, 0, 3, 0, 5, 0, 7, 0, 9, 0],
+        )
+
+    def test_equal(self):
+        data = [0, 7, 7, 100, 4095, 32767, 12, 0, 1, 500]
+        self.check("vectors2.csv", data, data)
+
+    def test_boundaries(self):
+        self.check(
+            "vectors3.csv",
+            [0, 32767, 4095, 1, 0, 255, 256, 1000, 2, 9],
+            [0, 32766, 4095, 0, 1, 255, 255, 1000, 3, 9],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
