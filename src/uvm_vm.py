@@ -46,6 +46,7 @@ class Machine:
             "load": self.load,
             "read": self.read,
             "write": self.write,
+            "eq": self.eq,
         }
 
     def run(self):
@@ -92,6 +93,11 @@ class Machine:
 
     def write(self, address):
         self.memory[self.check_address(address)] = self.pop()
+
+    def eq(self, address):
+        first = self.pop()
+        second = self.memory[self.check_address(address)]
+        self.push(int(first == second))
 
 
 def read_program(path):

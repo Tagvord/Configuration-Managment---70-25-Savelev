@@ -79,5 +79,19 @@ class InterpreterTest(unittest.TestCase):
             run_source("write,100\n")
 
 
+class AluTest(unittest.TestCase):
+
+    def test_eq_program(self):
+        text = (EXAMPLES / "eq.csv").read_text(encoding="utf-8")
+        memory = run_source(text).memory
+        self.assertEqual(memory[1010:1017], [1, 0, 1, 1, 0, 0, 1])
+
+    def test_eq_stack(self):
+        machine = run_source(
+            "load,5\nwrite,100\nload,1\nload,5\neq,100\n"
+        )
+        self.assertEqual(machine.stack, [1, 1])
+
+
 if __name__ == "__main__":
     unittest.main()
