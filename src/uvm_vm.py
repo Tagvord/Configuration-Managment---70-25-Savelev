@@ -5,6 +5,7 @@ from pathlib import Path
 from src.uvm_isa import COMMAND_SIZE, decode
 
 MEMORY_SIZE = 1 << 16
+MAX_BYTE_VALUE = 255
 
 
 def error(message):
@@ -58,7 +59,7 @@ class Machine:
 
     def fetch(self):
         cells = self.memory[self.pc:self.pc + COMMAND_SIZE]
-        if any(not 0 <= cell <= 255 for cell in cells):
+        if any(not 0 <= cell <= MAX_BYTE_VALUE for cell in cells):
             error(f"адрес {self.pc}: в памяти команд не байт")
         try:
             return decode(bytes(cells))

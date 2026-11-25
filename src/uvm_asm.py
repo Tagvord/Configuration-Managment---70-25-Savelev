@@ -4,6 +4,8 @@ from pathlib import Path
 
 from src.uvm_isa import COMMANDS, b_limit, encode, hex_bytes
 
+CSV_FIELDS_PER_COMMAND = 2
+
 
 def error(message):
     raise SystemExit(f"Ошибка: {message}")
@@ -39,7 +41,7 @@ def parse_row(row, line_no):
     name = row[0].strip().lower()
     if name not in COMMANDS:
         error(f"строка {line_no}: неизвестная команда «{row[0].strip()}»")
-    if len(row) != 2 or not row[1].strip():
+    if len(row) != CSV_FIELDS_PER_COMMAND or not row[1].strip():
         error(f"строка {line_no}: команда {name} ожидает ровно один операнд")
     value = parse_operand(row[1].strip(), line_no)
     if not 0 <= value <= b_limit(name):
