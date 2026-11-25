@@ -6,12 +6,19 @@ PRACTICE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PRACTICE.parent))
 
 from src.uvm_asm import parse, translate
+from src.uvm_vm import Machine
 
 EXAMPLES = PRACTICE / "examples"
 
 
 def assemble_file(name):
     return parse((EXAMPLES / name).read_text(encoding="utf-8"))
+
+
+def run_source(text):
+    machine = Machine(translate(parse(text)))
+    machine.run()
+    return machine
 
 
 class AssemblerTest(unittest.TestCase):
@@ -48,6 +55,28 @@ class MachineCodeTest(unittest.TestCase):
     def test_size(self):
         code = translate(parse("load,1\nload,2\nwrite,3\n"))
         self.assertEqual(len(code), 9)
+
+
+class InterpreterTest(unittest.TestCase):
+
+    def test_copy_array(self):
+        text = (EXAMPLES / "copy.csv").read_text(encoding="utf-8")
+        memory = run_source(text).memory
+        source = [5, 17, 42, 0, 1000, 32767, 3, 8]
+        self.assertEqual(memory[1000:1008], source)
+        self.assertEqual(memory[1010:1018], source)
+
+    def test_read_offset(self):
+        machine = run_source("load,77\nwrite,30\nload,10\nread,20\n")
+        self.assertEqual(machine.stack, [77])
+
+    def test_shared_memory(self):
+        machine = run_source("load,668\n")
+        self.assertEqual(machine.memory[:3], [0x77, 0x4E, 0x01])
+
+    def test_empty_stack(self):
+        with self.assertRaises(SystemExit):
+            run_source("write,100\n")
 
 
 if __name__ == "__main__":

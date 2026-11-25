@@ -20,3 +20,16 @@ def encode(command):
 
 def hex_bytes(data):
     return ", ".join(f"0x{byte:02X}" for byte in data)
+
+
+OPCODES = {opcode: name for name, (opcode, _, _) in COMMANDS.items()}
+
+
+def decode(data):
+    word = int.from_bytes(data, "little")
+    opcode = word & ((1 << OPCODE_BITS) - 1)
+    if opcode not in OPCODES:
+        raise ValueError(f"неизвестный код операции {opcode}")
+    name = OPCODES[opcode]
+    operand = (word >> OPCODE_BITS) & b_limit(name)
+    return {"name": name, "A": opcode, "B": operand}
